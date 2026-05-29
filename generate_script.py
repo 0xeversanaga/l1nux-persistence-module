@@ -46,7 +46,7 @@ def main():
 	parser.add_argument("--url", "-u", required=True, help="Implant URL")
 	args = parser.parse_args()
 
-	generate_payload(args.name, args.url)
+	generate_payload(args.url)
 
 if __name__ == '__main__':
 	main()
